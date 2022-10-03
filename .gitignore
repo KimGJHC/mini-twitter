@@ -1,3 +1,4 @@
+.pycharm_helpers/
 *.box
 .vagrant
 Vagrantfile
