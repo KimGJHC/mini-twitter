@@ -19,6 +19,7 @@ class UserViewSet(viewsets.ModelViewSet): # (ReadOnlyModelViewSet)
 
 class AccountViewSet(viewsets.ViewSet):
     # need to do CRUD ourselves
+    serializer_class = LoginSerializer
 
     @action(methods=['GET'], detail=False) # detail = True if this action is on object
     def login_status(self, request):
@@ -35,6 +36,7 @@ class AccountViewSet(viewsets.ViewSet):
     @action(methods=['POST'], detail=False)
     def login(self, request):
         # get username and password from request
+        # get: request.query_params, post: request.data
         serializer = LoginSerializer(data=request.data)
         if not serializer.is_valid():
             return Response({
@@ -42,3 +44,27 @@ class AccountViewSet(viewsets.ViewSet):
                 "message": "Please check input",
                 "errors": serializer.errors,
             }, status=400)
+        username = serializer.validated_data['username']
+        password = serializer.validated_data['password']
+
+        # check user existence
+        if not User.objects.filter(username=username).exists():
+            return Response({
+                "success": False,
+                "message": "User does not exists",
+            }, status=400)
+
+        # validate user info
+        user = django_authenticate(username=username, password=password)
+        if not user or user.is_anonymous:
+            return Response({
+                "success": False,
+                "message": "Username and password do not match",
+            }, status=400)
+
+        # login user
+        django_login(request, user)
+        return Response({
+            "success": True,
+            "user": UserSerializer(instance=user).data,
+        })
