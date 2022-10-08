@@ -78,15 +78,14 @@ class AccountViewSet(viewsets.ViewSet):
         serializer = SignupSerializer(data=request.data)
         if not serializer.is_valid():
             return Response({
-                "success": False,
-                "message": "Please check input",
-                "errors": serializer.errors,
+                'success': False,
+                'message': "Please check input",
+                'errors': serializer.errors,
             }, status=400)
 
         user = serializer.save()
-        # login user
         django_login(request, user)
         return Response({
-            "success": True,
-            "user": UserSerializer(instance=user).data,
+            'success': True,
+            'user': UserSerializer(user).data,
         }, status=201)
