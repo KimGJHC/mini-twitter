@@ -20,6 +20,7 @@ class TweetViewSet(viewsets.GenericViewSet):
         if 'user_id' not in request.query_params:
             return Response('missing user_id', status=400)
 
+        # we want to create composite index with user_id and created_at
         tweets = Tweet.objects.filter(
             user_id=request.query_params['user_id']
         ).order_by('-created_at')
