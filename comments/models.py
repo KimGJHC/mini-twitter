@@ -1,6 +1,9 @@
 from django.db import models
 from django.contrib.auth.models import User
 from tweets.models import Tweet
+from likes.models import Like
+from django.contrib.contenttypes.fields import ContentType
+
 
 class Comment(models.Model):
     """
@@ -15,6 +18,13 @@ class Comment(models.Model):
 
     class Meta:
         index_together = (('tweet', 'created_at'),)
+
+    @property
+    def like_set(self):
+        return Like.objects.filter(
+            content_type=ContentType.objects.get_for_model(Comment),
+            object_id=self.id,
+        ).order_by('-created_at')
 
     def __str__(self):
         return '{} - {} comments {} on tweet {}'.format(
