@@ -8,8 +8,9 @@ from comments.api.serializers import (
     CommentSerializerForUpdate,
 )
 from comments.api.permissions import IsObjectOwner
+from utils.decorators import required_params
 
-# do not use modelviewset because it offers a lot functions already
+# do not use modelviewset because it offers some functions already
 class CommentViewSet(viewsets.GenericViewSet):
     """
     Implement list, create, update, destroy methods
@@ -30,16 +31,9 @@ class CommentViewSet(viewsets.GenericViewSet):
         return [AllowAny()]
 
     # GET /api/comments/?tweet_id=1
+    @required_params(params=['tweet_id'])
     def list(self, request, *args, **kwargs):
         # get all comments for a tweet
-        if 'tweet_id' not in request.query_params:
-            return Response(
-                {
-                    'message': 'missing tweet_id in request',
-                    'success': False,
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
         # from django_filter
         queryset = self.get_queryset()
         comments = self.filter_queryset(queryset).prefetch_related('user').order_by('created_at')
