@@ -3,9 +3,9 @@ from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from tweets.api.serializers import (
-    TweetCreateSerializer,
+    TweetSerializerForCreate,
     TweetSerializer,
-    TweetSerializerWithComments,
+    TweetSerializerForDetail,
 )
 from tweets.models import Tweet
 from utils.decorators import required_params
@@ -16,7 +16,7 @@ class TweetViewSet(viewsets.GenericViewSet,
 
     # API end point to let user create and list tweets
     queryset = Tweet.objects.all()
-    serializer_class = TweetCreateSerializer
+    serializer_class = TweetSerializerForCreate
 
     # check permission to actions
     def get_permissions(self):
@@ -26,7 +26,10 @@ class TweetViewSet(viewsets.GenericViewSet,
 
     def retrieve(self, request, *args, **kwargs):
         tweet = self.get_object()
-        return Response(TweetSerializerWithComments(tweet).data)
+        return Response(TweetSerializerForDetail(
+            tweet,
+            context={'request':request,}
+        ).data)
 
     @required_params(params=['user_id'])
     def list(self, request):
@@ -34,12 +37,16 @@ class TweetViewSet(viewsets.GenericViewSet,
         tweets = Tweet.objects.filter(
             user_id=request.query_params['user_id']
         ).order_by('-created_at')
-        serializer = TweetSerializer(tweets, many=True) # return a list of dict
+        serializer = TweetSerializer(
+            tweets,
+            context={'request': request},
+            many=True,
+        ) # return a list of dict
 
         return Response({'tweets': serializer.data})
 
     def create(self, request):
-        serializer = TweetCreateSerializer(
+        serializer = TweetSerializerForCreate(
             data=request.data,
             context={'request': request},
         )
@@ -51,4 +58,6 @@ class TweetViewSet(viewsets.GenericViewSet,
             }, status=400)
         tweet = serializer.save()
         NewsFeedService.fanout_to_followers(tweet)
-        return Response(TweetSerializer(tweet).data, status=201)
+        return Response(TweetSerializer(tweet,context={'request':request}).data,
+                        status=201,
+                        )
