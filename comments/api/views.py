@@ -18,6 +18,7 @@ class CommentViewSet(viewsets.GenericViewSet):
     # for django UI
     serializer_class = CommentSerializerForCreate
     queryset = Comment.objects.all()
+    filterset_fields = ('tweet_id',)
 
     def get_permissions(self):
         # for default http request
@@ -27,6 +28,26 @@ class CommentViewSet(viewsets.GenericViewSet):
             # sequential verification
             return [IsAuthenticated(), IsObjectOwner()]
         return [AllowAny()]
+
+    # GET /api/comments/?tweet_id=1
+    def list(self, request, *args, **kwargs):
+        # get all comments for a tweet
+        if 'tweet_id' not in request.query_params:
+            return Response(
+                {
+                    'message': 'missing tweet_id in request',
+                    'success': False,
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        # from django_filter
+        queryset = self.get_queryset()
+        comments = self.filter_queryset(queryset).prefetch_related('user').order_by('created_at')
+        serializer = CommentSerializer(comments, many=True)
+        return Response(
+            {'comments': serializer.data},
+            status=status.HTTP_200_OK,
+        )
 
     def create(self, request, *args, **kwargs):
         data = {
