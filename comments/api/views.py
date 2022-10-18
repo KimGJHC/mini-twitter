@@ -9,6 +9,7 @@ from comments.api.serializers import (
 )
 from comments.api.permissions import IsObjectOwner
 from utils.decorators import required_params
+from inbox.services import NotificationService
 
 # do not use modelviewset because it offers some functions already
 class CommentViewSet(viewsets.GenericViewSet):
@@ -62,6 +63,7 @@ class CommentViewSet(viewsets.GenericViewSet):
             }, status=status.HTTP_400_BAD_REQUEST)
 
         comment = serializer.save()
+        NotificationService.send_comment_notification(comment)
         return Response(
             CommentSerializer(comment,
                               context={'request': request},
