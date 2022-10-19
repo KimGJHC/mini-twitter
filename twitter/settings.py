@@ -40,6 +40,7 @@ INSTALLED_APPS = [
 
     'django_filters',
     'rest_framework',
+    'notifications',
 
     'accounts',
     'tweets',
@@ -47,6 +48,7 @@ INSTALLED_APPS = [
     'newsfeeds',
     'comments',
     'likes',
+    'inbox',
 ]
 
 REST_FRAMEWORK = {
