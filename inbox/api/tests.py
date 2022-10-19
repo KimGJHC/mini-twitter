@@ -113,3 +113,44 @@ class NotificationApiTests(TestCase):
         self.assertEqual(response.data['count'], 1)
         response = self.kim_client.get(NOTIFICATION_URL, {'unread': False})
         self.assertEqual(response.data['count'], 1)
+
+    def test_update(self):
+        self.david_client.post(LIKE_URL, {
+            'content_type': 'tweet',
+            'object_id': self.kim_tweet.id,
+        })
+        comment = self.create_comment(self.kim, self.kim_tweet)
+        self.david_client.post(LIKE_URL, {
+            'content_type': 'comment',
+            'object_id': comment.id,
+        })
+        notification = self.kim.notifications.first()
+
+        url = '/api/notifications/{}/'.format(notification.id)
+        # need to use PUT for updating notifications
+        response = self.david_client.post(url, {'unread': False})
+        self.assertEqual(response.status_code, 405)
+        # anonymous user cannot change notification states
+        response = self.anonymous_client.put(url, {'unread': False})
+        self.assertEqual(response.status_code, 403)
+        response = self.david_client.put(url, {'unread': False})
+        self.assertEqual(response.status_code, 404)
+        # update as read
+        response = self.kim_client.put(url, {'unread': False})
+        self.assertEqual(response.status_code, 200)
+        unread_url = '/api/notifications/unread-count/'
+        response = self.kim_client.get(unread_url)
+        self.assertEqual(response.data['unread_count'], 1)
+
+        # update as unread
+        response = self.kim_client.put(url, {'unread': True})
+        response = self.kim_client.get(unread_url)
+        self.assertEqual(response.data['unread_count'], 2)
+        # action needs to be unread
+        response = self.kim_client.put(url, {'verb': 'newverb'})
+        self.assertEqual(response.status_code, 400)
+        # only notification states can be modified
+        response = self.kim_client.put(url, {'verb': 'newverb', 'unread': False})
+        self.assertEqual(response.status_code, 200)
+        notification.refresh_from_db()
+        self.assertNotEqual(notification.verb, 'newverb')
