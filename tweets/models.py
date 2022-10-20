@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 from utils.time_helpers import utc_now
 from likes.models import Like
 from django.contrib.contenttypes.fields import ContentType
-
+from tweets.constants import TweetPhotoStatus, TWEET_PHOTO_STATUS_CHOICES
 
 class Tweet(models.Model):
     user = models.ForeignKey(
@@ -34,3 +34,40 @@ class Tweet(models.Model):
         return f'{self.created_at} {self.user}: {self.content}'
 
     # make migration after modifying the model
+
+
+
+class TweetPhoto(models.Model):
+    # linked photo to tweet
+    tweet = models.ForeignKey(Tweet, on_delete=models.SET_NULL, null=True)
+
+    # we can access user from tweet, we store user here for direct access which is more efficient
+    user = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
+
+    # file storage
+    file = models.FileField()
+    order = models.IntegerField(default=0)
+
+    # verifying state of photo
+    # use integer for future scaling
+    status = models.IntegerField(
+        default=TweetPhotoStatus.PENDING,
+        choices=TWEET_PHOTO_STATUS_CHOICES,
+    )
+
+    # soft delete the photo is needed for efficiency
+    # async task for real deletion later
+    has_deleted = models.BooleanField(default=False)
+    deleted_at = models.DateTimeField(null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        index_together = (
+            ('user', 'created_at'),
+            ('has_deleted', 'created_at'),
+            ('status', 'created_at'),
+            ('tweet', 'order'),
+        )
+
+    def __str__(self):
+        return f'{self.tweet_id}: {self.file}'
