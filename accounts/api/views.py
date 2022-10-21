@@ -4,15 +4,18 @@ from django.contrib.auth import (
     logout as django_logout,
     authenticate as django_authenticate
 )
-
+from accounts.models import UserProfile
 from rest_framework import viewsets, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from accounts.api.serializers import (
-    UserSerializer,
     LoginSerializer,
-    SignupSerializer
+    SignupSerializer,
+    UserProfileSerializerForUpdate,
+    UserSerializer,
 )
+from utils.permissions import IsObjectOwner
+from rest_framework.permissions import IsAuthenticated
 
 # modelViewSet, to provide user api to read user data
 class UserViewSet(viewsets.ModelViewSet): # (ReadOnlyModelViewSet)
@@ -84,9 +87,20 @@ class AccountViewSet(viewsets.ViewSet):
             }, status=400)
 
         user = serializer.save()
+        # Create UserProfile object
+        user.profile
         django_login(request, user)
 
         return Response({
             'success': True,
             'user': UserSerializer(user).data,
         }, status=201)
+
+
+class UserProfileViewSet(
+    viewsets.GenericViewSet,
+    viewsets.mixins.UpdateModelMixin,
+):
+    queryset = UserProfile
+    permission_classes = (IsAuthenticated, IsObjectOwner,)
+    serializer_class = UserProfileSerializerForUpdate
