@@ -8,33 +8,29 @@ from friendships.api.serializers import (
     FollowingSerializer,
     FollowerSerializer,
 )
-
 from django.contrib.auth.models import User
+from utils.paginations import FriendshipPagination
 
 
 class FriendshipViewSet(viewsets.GenericViewSet):
     # api example: POST /api/friendships/1/follow is to follower user id = 1
     # detail = True will call get_object() first and check if Friendship object exists
     queryset = User.objects.all()
+    pagination_class = FriendshipPagination
 
     @action(methods=['GET'], detail=True, permission_classes=[AllowAny])
     def followers(self, request, pk):
         friendships = Friendship.objects.filter(to_user_id=pk).order_by('-created_at')
-        serializer = FollowerSerializer(friendships, many=True)
-        return Response(
-            {'followers': serializer.data},
-            status=status.HTTP_200_OK,
-        )
+        page = self.paginate_queryset(friendships)
+        serializer = FollowerSerializer(page, many=True, context={'request': request})
+        return self.get_paginated_response(serializer.data)
 
     @action(methods=['GET'], detail=True, permission_classes=[AllowAny])
     def followings(self, request, pk):
         friendships = Friendship.objects.filter(from_user_id = pk).order_by('-created_at')
-        serializer = FollowingSerializer(friendships, many=True)
-
-        return Response(
-            {'followings': serializer.data},
-            status=status.HTTP_200_OK,
-        )
+        page = self.paginate_queryset(friendships)
+        serializer = FollowingSerializer(page, many=True, context={'request': request})
+        return self.get_paginated_response(serializer.data)
 
     @action(methods=['POST'], detail=True, permission_classes=[IsAuthenticated])
     def follow(self, request, pk):
