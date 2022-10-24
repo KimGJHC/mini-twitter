@@ -4,6 +4,8 @@ from utils.time_helpers import utc_now
 from likes.models import Like
 from django.contrib.contenttypes.fields import ContentType
 from tweets.constants import TweetPhotoStatus, TWEET_PHOTO_STATUS_CHOICES
+from accounts.services import UserService
+
 
 class Tweet(models.Model):
     user = models.ForeignKey(
@@ -35,6 +37,9 @@ class Tweet(models.Model):
 
     # make migration after modifying the model
 
+    @property
+    def cached_user(self):
+        return UserService.get_user_through_cache(self.user_id)
 
 
 class TweetPhoto(models.Model):
