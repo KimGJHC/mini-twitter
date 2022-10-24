@@ -1,6 +1,7 @@
 from django.test import TestCase as DjangoTestCase
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.fields import ContentType
+from django.core.cache import caches
 from tweets.models import Tweet
 from comments.models import Comment
 from likes.models import Like
@@ -9,6 +10,9 @@ from rest_framework.test import APIClient
 
 
 class TestCase(DjangoTestCase):
+    def clear_cache(self):
+        # django test will roll back db but not cache
+        caches['testing'].clear()
 
     @property
     def anonymous_client(self):
