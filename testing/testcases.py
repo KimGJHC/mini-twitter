@@ -7,12 +7,14 @@ from comments.models import Comment
 from likes.models import Like
 from newsfeeds.models import NewsFeed
 from rest_framework.test import APIClient
+from utils.redis_client import RedisClient
 
 
 class TestCase(DjangoTestCase):
     def clear_cache(self):
         # django test will roll back db but not cache
         caches['testing'].clear()
+        RedisClient.clear()
 
     @property
     def anonymous_client(self):
