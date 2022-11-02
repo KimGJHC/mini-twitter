@@ -4,6 +4,8 @@ from tweets.models import Tweet
 from likes.models import Like
 from django.contrib.contenttypes.fields import ContentType
 from utils.memcached_helper import MemcachedHelper
+from django.db.models.signals import post_save, pre_delete
+from comments.listeners import incr_comments_count, decr_comments_count
 
 
 class Comment(models.Model):
@@ -20,13 +22,6 @@ class Comment(models.Model):
     class Meta:
         index_together = (('tweet', 'created_at'),)
 
-    @property
-    def like_set(self):
-        return Like.objects.filter(
-            content_type=ContentType.objects.get_for_model(Comment),
-            object_id=self.id,
-        ).order_by('-created_at')
-
     def __str__(self):
         return '{} - {} comments {} on tweet {}'.format(
             self.created_at,
@@ -36,5 +31,15 @@ class Comment(models.Model):
         )
 
     @property
+    def like_set(self):
+        return Like.objects.filter(
+            content_type=ContentType.objects.get_for_model(Comment),
+            object_id=self.id,
+        ).order_by('-created_at')
+
+    @property
     def cached_user(self):
         return MemcachedHelper.get_object_through_cache(User, self.user_id)
+
+post_save.connect(incr_comments_count, sender=Comment)
+pre_delete.connect(decr_comments_count, sender=Comment)

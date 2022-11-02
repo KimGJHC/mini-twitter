@@ -20,6 +20,11 @@ class Tweet(models.Model):
     content = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    # added features need to be set null = True, otherwise the migration
+    # process will be slow
+    likes_count = models.IntegerField(default=0, null=True)
+    comments_count = models.IntegerField(default=0, null=True)
+
     class Meta:
         index_together = (('user', 'created_at'),)
         ordering = ('user', '-created_at')
@@ -28,17 +33,17 @@ class Tweet(models.Model):
     def hours_to_now(self):
         return (utc_now() - self.created_at).seconds // 3600
 
+    def __str__(self):
+        return f'{self.created_at} {self.user}: {self.content}'
+
+    # make migration after modifying the model
+
     @property
     def like_set(self):
         return Like.objects.filter(
             content_type=ContentType.objects.get_for_model(Tweet),
             object_id=self.id,
         ).order_by('-created_at')
-
-    def __str__(self):
-        return f'{self.created_at} {self.user}: {self.content}'
-
-    # make migration after modifying the model
 
     @property
     def cached_user(self):

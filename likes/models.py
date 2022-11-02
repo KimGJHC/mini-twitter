@@ -3,6 +3,8 @@ from django.contrib.auth.models import User
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.fields import ContentType
 from utils.memcached_helper import MemcachedHelper
+from django.db.models.signals import pre_delete, post_save
+from likes.listeners import incr_likes_count, decr_likes_count
 
 class Like(models.Model):
     object_id = models.PositiveIntegerField()
@@ -31,3 +33,6 @@ class Like(models.Model):
     @property
     def cached_user(self):
         return MemcachedHelper.get_object_through_cache(User, self.user_id)
+
+pre_delete.connect(decr_likes_count, sender=Like)
+post_save.connect(incr_likes_count, sender=Like)
