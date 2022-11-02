@@ -1,10 +1,10 @@
-from django.db import models
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.fields import GenericForeignKey
-from django.contrib.contenttypes.fields import ContentType
-from utils.memcached_helper import MemcachedHelper
+from django.contrib.contenttypes.models import ContentType
+from django.db import models
 from django.db.models.signals import pre_delete, post_save
 from likes.listeners import incr_likes_count, decr_likes_count
+from utils.memcached_helper import MemcachedHelper
 
 class Like(models.Model):
     object_id = models.PositiveIntegerField()
