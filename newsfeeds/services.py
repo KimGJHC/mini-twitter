@@ -1,8 +1,7 @@
-from friendships.services import FriendshipService
 from newsfeeds.models import NewsFeed
 from twitter.cache import USER_NEWSFEEDS_PATTERN
 from utils.redis_helper import RedisHelper
-from newsfeeds.tasks import fanout_newsfeeds_task
+from newsfeeds.tasks import fanout_newsfeeds_main_task
 
 class NewsFeedService(object):
     # service usually has class method
@@ -10,7 +9,7 @@ class NewsFeedService(object):
     @classmethod
     def fanout_to_followers(cls, tweet):
         # use celery for async tasks
-        fanout_newsfeeds_task.delay(tweet.id)
+        fanout_newsfeeds_main_task.delay(tweet.id, tweet.user_id)
 
     @classmethod
     def get_cached_newsfeeds(cls, user_id):
