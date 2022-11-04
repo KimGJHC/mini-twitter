@@ -10,6 +10,8 @@ from comments.api.serializers import (
 from utils.permissions import IsObjectOwner
 from utils.decorators import required_params
 from inbox.services import NotificationService
+from ratelimit.decorators import ratelimit
+from django.utils.decorators import method_decorator
 
 # do not use modelviewset because it offers some functions already
 class CommentViewSet(viewsets.GenericViewSet):
@@ -33,6 +35,7 @@ class CommentViewSet(viewsets.GenericViewSet):
 
     # GET /api/comments/?tweet_id=1
     @required_params(params=['tweet_id'])
+    @method_decorator(ratelimit(key='user', rate='5/m', method='GET', block=True))
     def list(self, request, *args, **kwargs):
         # get all comments for a tweet
         # from django_filter
@@ -48,6 +51,7 @@ class CommentViewSet(viewsets.GenericViewSet):
             status=status.HTTP_200_OK,
         )
 
+    @method_decorator(ratelimit(key='user', rate='5/m', method='POST', block=True))
     def create(self, request, *args, **kwargs):
         data = {
             'user_id': request.user.id,
@@ -71,6 +75,7 @@ class CommentViewSet(viewsets.GenericViewSet):
             status=status.HTTP_201_CREATED,
         )
 
+    @method_decorator(ratelimit(key='user', rate='5/s', method='POST', block=True))
     def update(self, request, *args, **kwargs):
         serializer = CommentSerializerForUpdate(
             instance=self.get_object(), # get comment from queryset and filter
@@ -90,6 +95,7 @@ class CommentViewSet(viewsets.GenericViewSet):
             status=status.HTTP_200_OK,
         )
 
+    @method_decorator(ratelimit(key='user', rate='5/s', method='POST', block=True))
     def destroy(self, request, *args, **kwargs):
         comment = self.get_object()
         comment.delete()

@@ -11,6 +11,8 @@ from friendships.api.serializers import (
 from friendships.services import FriendshipService
 from django.contrib.auth.models import User
 from utils.paginations import FriendshipPagination
+from ratelimit.decorators import ratelimit
+from django.utils.decorators import method_decorator
 
 
 class FriendshipViewSet(viewsets.GenericViewSet):
@@ -20,6 +22,7 @@ class FriendshipViewSet(viewsets.GenericViewSet):
     pagination_class = FriendshipPagination
 
     @action(methods=['GET'], detail=True, permission_classes=[AllowAny])
+    @method_decorator(ratelimit(key='user_or_ip', rate='1/s', method='GET', block=True))
     def followers(self, request, pk):
         friendships = Friendship.objects.filter(to_user_id=pk).order_by('-created_at')
         page = self.paginate_queryset(friendships)
@@ -27,6 +30,7 @@ class FriendshipViewSet(viewsets.GenericViewSet):
         return self.get_paginated_response(serializer.data)
 
     @action(methods=['GET'], detail=True, permission_classes=[AllowAny])
+    @method_decorator(ratelimit(key='user_or_ip', rate='1/s', method='GET', block=True))
     def followings(self, request, pk):
         friendships = Friendship.objects.filter(from_user_id = pk).order_by('-created_at')
         page = self.paginate_queryset(friendships)
@@ -34,6 +38,7 @@ class FriendshipViewSet(viewsets.GenericViewSet):
         return self.get_paginated_response(serializer.data)
 
     @action(methods=['POST'], detail=True, permission_classes=[IsAuthenticated])
+    @method_decorator(ratelimit(key='user', rate='1/s', method='POST', block=True))
     def follow(self, request, pk):
         # could be the case when follow button is clicked multiple times, do not need to throw exception
         if Friendship.objects.filter(from_user=request.user, to_user=pk).exists():
@@ -56,6 +61,7 @@ class FriendshipViewSet(viewsets.GenericViewSet):
                         status = status.HTTP_201_CREATED)
 
     @action(methods=['POST'], detail=True, permission_classes=[IsAuthenticated])
+    @method_decorator(ratelimit(key='user', rate='1/s', method='POST', block=True))
     def unfollow(self, request, pk):
         if request.user.id == int(pk):
             return Response({
@@ -69,5 +75,6 @@ class FriendshipViewSet(viewsets.GenericViewSet):
         return Response({'success': True,
                          'deleted': deleted})
 
+    @method_decorator(ratelimit(key='user_or_ip', rate='1/s', method='GET', block=True))
     def list(self, request):
         return Response({'message': 'Friendships Home Page'})
