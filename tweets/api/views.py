@@ -11,6 +11,8 @@ from tweets.models import Tweet
 from utils.decorators import required_params
 from utils.paginations import EndlessPagination
 from tweets.services import TweetService
+from django.utils.decorators import method_decorator
+from ratelimit.decorators import ratelimit
 
 class TweetViewSet(viewsets.GenericViewSet):
 
@@ -25,6 +27,7 @@ class TweetViewSet(viewsets.GenericViewSet):
             return [AllowAny()]
         return [IsAuthenticated()]
 
+    @method_decorator(ratelimit(key='user_or_ip', rate='1/s', method='GET', block=True))
     def retrieve(self, request, *args, **kwargs):
         tweet = self.get_object()
         return Response(TweetSerializerForDetail(
@@ -33,6 +36,7 @@ class TweetViewSet(viewsets.GenericViewSet):
         ).data)
 
     @required_params(params=['user_id'])
+    @method_decorator(ratelimit(key='user_or_ip', rate='1/s', method='GET', block=True))
     def list(self, request):
         # we want to create composite index with user_id and created_at
         user_id = request.query_params['user_id']
@@ -49,6 +53,8 @@ class TweetViewSet(viewsets.GenericViewSet):
 
         return self.get_paginated_response(serializer.data)
 
+    @method_decorator(ratelimit(key='user', rate='1/s', method='POST', block=True))
+    @method_decorator(ratelimit(key='user', rate='6/m', method='POST', block=True))
     def create(self, request):
         serializer = TweetSerializerForCreate(
             data=request.data,
